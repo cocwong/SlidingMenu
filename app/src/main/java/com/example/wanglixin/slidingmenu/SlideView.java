@@ -15,21 +15,26 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewPropertyAnimator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
+import android.widget.Scroller;
 
 /**
  * Created by wanglixin on 2017/7/12.
  */
 
-public class SlideView extends RelativeLayout implements MenuFunction, GestureDetector.OnGestureListener{
+public class SlideView extends RelativeLayout implements MenuFunction, GestureDetector.OnGestureListener {
     private int layoutContent, layoutMenu;
     private int menuWidth;
     private View contentView, menuView;
     private float slidedWidth;
     private boolean isOpen;
+    private boolean isTransOnProgress;
     private GestureDetector detector;
+    private Scroller mScroller;
+
     public SlideView(@NonNull Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
 
@@ -38,13 +43,14 @@ public class SlideView extends RelativeLayout implements MenuFunction, GestureDe
         layoutMenu = ta.getResourceId(R.styleable.SlideView_slide_layout_menu, -1);
         menuWidth = ta.getDimensionPixelSize(R.styleable.SlideView_slide_menu_width, 800);
         ta.recycle();
-        detector =  new GestureDetector(context,this);
+        detector = new GestureDetector(context, this);
+        mScroller = new Scroller(context, new DecelerateInterpolator());
         init(context);
     }
 
     private void init(Context context) {
         contentView = addSlideView(context, layoutMenu);
-        contentView.setBackgroundColor(Color.BLUE);
+        contentView.setBackgroundColor(Color.LTGRAY);
         menuView = addSlideView(context, layoutContent);
     }
 
@@ -75,35 +81,37 @@ public class SlideView extends RelativeLayout implements MenuFunction, GestureDe
                 break;
             case MotionEvent.ACTION_UP:
                 if (slidedWidth < menuWidth / 2) {
-                    closeMenu();
+                    mScroller.startScroll(getScrollX(), 0, (int) (-event.getX()), 0);
+                    invalidate();
                 } else {
-                    openMenu();
+                    mScroller.startScroll(getScrollX(), 0, (int) (menuWidth-event.getX()), 0);
+                    invalidate();
                 }
+                isFlingProgress = -1;
                 break;
         }
+//        detector.onTouchEvent(event);
         return true;
     }
 
     @Override
     public void openMenu() {
-        contentView.animate().translationX(menuWidth).setDuration(250).setInterpolator(new DecelerateInterpolator()).setListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                super.onAnimationEnd(animation);
-                isOpen = true;
-            }
-        });
+        mScroller.startScroll(getScrollX(), 0, menuWidth, 0);
+        invalidate();
     }
 
     @Override
     public void closeMenu() {
-        contentView.animate().translationX(0).setDuration(250).setInterpolator(new DecelerateInterpolator()).setListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                super.onAnimationEnd(animation);
-                isOpen = false;
-            }
-        });
+        mScroller.startScroll(getScrollX(), 0, -menuWidth, 0);
+        invalidate();
+    }
+
+    @Override
+    public void computeScroll() {
+        if (mScroller.computeScrollOffset()) {
+            scrollTo(mScroller.getCurrX(), mScroller.getCurrY());
+            invalidate();
+        }
     }
 
     @Override
@@ -128,7 +136,8 @@ public class SlideView extends RelativeLayout implements MenuFunction, GestureDe
 
     @Override
     public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
-        return false;
+        isFlingProgress = -1;
+        return true;
     }
 
     @Override
@@ -136,13 +145,16 @@ public class SlideView extends RelativeLayout implements MenuFunction, GestureDe
 
     }
 
+    private int isFlingProgress = -1;//-1normal,1open,2close
+
     @Override
-    public boolean onFling(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
-        if(isOpen){
-            closeMenu();
-        }else {
-            openMenu();
+    public boolean onFling(MotionEvent e1, MotionEvent e2, float v, float v1) {
+        float dx = e2.getX() - e1.getX();
+        if (dx > 0) {
+            isFlingProgress = 1;
+        } else {
+            isFlingProgress = 2;
         }
-        return false;
+        return true;
     }
 }
