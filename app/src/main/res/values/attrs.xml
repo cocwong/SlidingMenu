@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SlideView">
+        <attr name="slide_layout_content" format="reference" />
+        <attr name="slide_layout_menu" format="reference" />
+        <attr name="slide_menu_width" format="dimension" />
+    </declare-styleable>
+</resources>
