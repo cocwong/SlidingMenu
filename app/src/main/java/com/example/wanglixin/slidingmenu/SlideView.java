@@ -1,21 +1,14 @@
 package com.example.wanglixin.slidingmenu;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.widget.ViewDragHelper;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewPropertyAnimator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
@@ -25,14 +18,12 @@ import android.widget.Scroller;
  * Created by wanglixin on 2017/7/12.
  */
 
-public class SlideView extends RelativeLayout implements MenuFunction, GestureDetector.OnGestureListener {
+public class SlideView extends RelativeLayout implements MenuFunction {
     private int layoutContent, layoutMenu;
     private int menuWidth;
     private View contentView, menuView;
-    private float slidedWidth;
     private boolean isOpen;
     private boolean isTransOnProgress;
-    private GestureDetector detector;
     private Scroller mScroller;
 
     public SlideView(@NonNull Context context, @Nullable AttributeSet attrs) {
@@ -43,7 +34,6 @@ public class SlideView extends RelativeLayout implements MenuFunction, GestureDe
         layoutMenu = ta.getResourceId(R.styleable.SlideView_slide_layout_menu, -1);
         menuWidth = ta.getDimensionPixelSize(R.styleable.SlideView_slide_menu_width, 800);
         ta.recycle();
-        detector = new GestureDetector(context, this);
         mScroller = new Scroller(context, new DecelerateInterpolator());
         init(context);
     }
@@ -75,22 +65,19 @@ public class SlideView extends RelativeLayout implements MenuFunction, GestureDe
                 break;
             case MotionEvent.ACTION_MOVE:
                 float dx = event.getX() - lastX;
-                slidedWidth = contentView.getTranslationX() + dx;
-                contentView.setTranslationX(slidedWidth);
+                scrollBy((int) -dx, 0);
                 lastX = event.getX();
                 break;
             case MotionEvent.ACTION_UP:
-                if (slidedWidth < menuWidth / 2) {
-                    mScroller.startScroll(getScrollX(), 0, (int) (-event.getX()), 0);
+                if (Math.abs(getScrollX()) < menuWidth / 2) {
+                    mScroller.startScroll(getScrollX(), 0, -getScrollX(), 0);
                     invalidate();
                 } else {
-                    mScroller.startScroll(getScrollX(), 0, (int) (menuWidth-event.getX()), 0);
+                    mScroller.startScroll(getScrollX(), 0, -(menuWidth - Math.abs(getScrollX())), 0);
                     invalidate();
                 }
-                isFlingProgress = -1;
                 break;
         }
-//        detector.onTouchEvent(event);
         return true;
     }
 
@@ -119,42 +106,4 @@ public class SlideView extends RelativeLayout implements MenuFunction, GestureDe
         return isOpen;
     }
 
-    @Override
-    public boolean onDown(MotionEvent motionEvent) {
-        return false;
-    }
-
-    @Override
-    public void onShowPress(MotionEvent motionEvent) {
-
-    }
-
-    @Override
-    public boolean onSingleTapUp(MotionEvent motionEvent) {
-        return false;
-    }
-
-    @Override
-    public boolean onScroll(MotionEvent motionEvent, MotionEvent motionEvent1, float v, float v1) {
-        isFlingProgress = -1;
-        return true;
-    }
-
-    @Override
-    public void onLongPress(MotionEvent motionEvent) {
-
-    }
-
-    private int isFlingProgress = -1;//-1normal,1open,2close
-
-    @Override
-    public boolean onFling(MotionEvent e1, MotionEvent e2, float v, float v1) {
-        float dx = e2.getX() - e1.getX();
-        if (dx > 0) {
-            isFlingProgress = 1;
-        } else {
-            isFlingProgress = 2;
-        }
-        return true;
-    }
 }
